@@ -13,6 +13,9 @@ __pycache__/
 *.sqlite3
 .cache/
 
+# Generated static site (built in CI by .github/workflows/pages.yml)
+docs/
+
 # OS / editor
 .DS_Store
 .idea/
