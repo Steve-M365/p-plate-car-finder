@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Sources &amp; runs - {{ app_name }}{% endblock %}
+{% block content %}
+<div class="panel">
+  <h2>Recommendation sources</h2>
+  <ul class="clean">
+    {% for s in sources %}
+    <li>
+      <a href="{{ s.url }}" target="_blank" rel="noopener">{{ s.title }}</a>
+      <span class="badge source">{{ s.category or 'web' }}</span>
+      <div class="reason">{{ s.summary }}</div>
+    </li>
+    {% else %}
+    <li class="muted">No sources yet. Run the recommendation search from the dashboard.</li>
+    {% endfor %}
+  </ul>
+</div>
+
+<div class="grid2">
+  <div class="panel">
+    <h2>Search runs</h2>
+    <table>
+      <thead><tr><th>When</th><th>Query</th><th>Provider</th><th>#</th></tr></thead>
+      <tbody>
+        {% for r in searches %}
+        <tr><td class="small">{{ r.run_at.strftime('%Y-%m-%d %H:%M') }}</td><td class="small">{{ r.query }}</td><td class="small">{{ r.provider or '—' }}</td><td>{{ r.result_count }}</td></tr>
+        {% else %}<tr><td colspan="4" class="muted">No runs yet.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <div class="panel">
+    <h2>Listing fetch runs</h2>
+    <table>
+      <thead><tr><th>When</th><th>Provider</th><th>Fetched</th><th>Added</th><th>Updated</th><th>Status</th></tr></thead>
+      <tbody>
+        {% for r in fetches %}
+        <tr>
+          <td class="small">{{ r.run_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td class="small">{{ r.provider }}</td>
+          <td>{{ r.fetched_count }}</td><td>{{ r.inserted_count }}</td><td>{{ r.updated_count }}</td>
+          <td class="small">{{ r.status }}{% if r.error %}: {{ r.error }}{% endif %}</td>
+        </tr>
+        {% else %}<tr><td colspan="6" class="muted">No fetches yet.</td></tr>{% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

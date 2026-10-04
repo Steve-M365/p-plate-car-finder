@@ -1,0 +1,11 @@
+external_id,make,model,variant,year,engine_size_cc,power_kw,weight_kg,body_type,fuel_type,transmission,price_aud,odometer_km,location,safety_rating_stars,safety_rating_year,listing_url
+csv:1,Toyota,Corolla,Ascent,2016,1798,103,1280,hatch,petrol,CVT,13990,91000,Werribee VIC,5,2014,https://example.com/listing/1
+csv:2,Mazda,Mazda3,Maxx,2017,1998,114,1270,hatch,petrol,automatic,17450,76000,Dandenong VIC,5,2014,https://example.com/listing/2
+csv:3,Hyundai,i30,Active,2015,1797,107,1290,hatch,petrol,automatic,12490,108000,Geelong VIC,5,2013,https://example.com/listing/3
+csv:4,Kia,Rio,Si,2016,1396,74,1120,hatch,petrol,automatic,10490,89000,Frankston VIC,4,2011,https://example.com/listing/4
+csv:5,Suzuki,Swift,GL,2017,1242,70,990,hatch,petrol,automatic,11990,63000,Bundoora VIC,5,2011,https://example.com/listing/5
+csv:6,Toyota,86,GT,2016,1998,152,1230,coupe,petrol,manual,23990,94000,Melbourne VIC,5,2012,https://example.com/listing/6
+csv:7,Subaru,WRX,Premium,2015,1998,195,1455,sedan,petrol,manual,26990,87000,Melbourne VIC,5,2014,https://example.com/listing/7
+csv:8,Volkswagen,Golf,R,2016,1984,221,1435,hatch,petrol,dual-clutch,32990,78000,Melbourne VIC,5,2014,https://example.com/listing/8
+csv:9,Honda,Civic,Type R,2018,1996,228,1380,hatch,petrol,manual,42990,55000,Melbourne VIC,5,2017,https://example.com/listing/9
+csv:10,Holden,Commodore,SV6,2014,3564,210,1750,sedan,petrol,automatic,16990,142000,Melbourne VIC,5,2013,https://example.com/listing/10

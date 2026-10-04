@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit car' if car else 'Add car' }} - {{ app_name }}{% endblock %}
+{% block content %}
+<div class="panel">
+  <h2>{{ 'Edit car' if car else 'Add a car' }}</h2>
+  {% if car %}
+    <p class="small">
+      Current P-plate result:
+      <span class="badge {{ car.p_plate_compliant.value }}">{{ car.p_plate_compliant.value }}</span>
+      &mdash; {{ car.p_plate_reason }}
+    </p>
+  {% endif %}
+  <form method="post" action="{{ action }}">
+    <div class="row">
+      <div class="field"><label for="make">Make *</label><input id="make" name="make" required value="{{ car.make if car else '' }}"></div>
+      <div class="field"><label for="model">Model *</label><input id="model" name="model" required value="{{ car.model if car else '' }}"></div>
+      <div class="field"><label for="variant">Variant / trim</label><input id="variant" name="variant" value="{{ car.variant or '' if car else '' }}"></div>
+      <div class="field narrow"><label for="year">Year</label><input id="year" name="year" type="number" value="{{ car.year if car and car.year else '' }}"></div>
+    </div>
+    <div class="row" style="margin-top:.6rem">
+      <div class="field narrow"><label for="engine_size_cc">Engine (cc)</label><input id="engine_size_cc" name="engine_size_cc" type="number" value="{{ car.engine_size_cc if car and car.engine_size_cc else '' }}"></div>
+      <div class="field narrow"><label for="power_kw">Power (kW)</label><input id="power_kw" name="power_kw" type="number" step="0.1" value="{{ car.power_kw if car and car.power_kw else '' }}"></div>
+      <div class="field narrow"><label for="weight_kg">Weight (kg)</label><input id="weight_kg" name="weight_kg" type="number" value="{{ car.weight_kg if car and car.weight_kg else '' }}"></div>
+      <div class="field narrow"><label for="cylinders">Cylinders</label><input id="cylinders" name="cylinders" type="number" value="{{ car.cylinders if car and car.cylinders else '' }}"></div>
+    </div>
+    <div class="row" style="margin-top:.6rem">
+      <div class="field narrow">
+        <label for="body_type">Body type</label>
+        <select id="body_type" name="body_type">
+          <option value="">—</option>
+          {% for b in body_types %}<option value="{{ b }}" {% if car and car.body_type == b %}selected{% endif %}>{{ b }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field narrow">
+        <label for="fuel_type">Fuel</label>
+        <select id="fuel_type" name="fuel_type">
+          <option value="">—</option>
+          {% for f in fuel_types %}<option value="{{ f }}" {% if car and car.fuel_type == f %}selected{% endif %}>{{ f }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field narrow">
+        <label for="transmission">Transmission</label>
+        <select id="transmission" name="transmission">
+          <option value="">—</option>
+          {% for t in transmissions %}<option value="{{ t }}" {% if car and car.transmission == t %}selected{% endif %}>{{ t }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field narrow"><label for="price_aud">Price (A$)</label><input id="price_aud" name="price_aud" type="number" value="{{ car.price_aud if car and car.price_aud else '' }}"></div>
+      <div class="field narrow"><label for="odometer_km">Odometer (km)</label><input id="odometer_km" name="odometer_km" type="number" value="{{ car.odometer_km if car and car.odometer_km else '' }}"></div>
+    </div>
+    <div class="row" style="margin-top:.6rem">
+      <div class="field"><label for="location">Location</label><input id="location" name="location" value="{{ car.location or '' if car else '' }}" placeholder="Suburb VIC"></div>
+      <div class="field narrow"><label for="safety_rating_stars">ANCAP stars</label><input id="safety_rating_stars" name="safety_rating_stars" type="number" step="0.5" min="0" max="5" value="{{ car.safety_rating_stars if car and car.safety_rating_stars else '' }}"></div>
+      <div class="field narrow"><label for="safety_rating_year">ANCAP year</label><input id="safety_rating_year" name="safety_rating_year" type="number" value="{{ car.safety_rating_year if car and car.safety_rating_year else '' }}"></div>
+      <div class="field"><label for="listing_url">Listing URL</label><input id="listing_url" name="listing_url" value="{{ car.listing_url or '' if car else '' }}"></div>
+    </div>
+    <div class="row" style="margin-top:.6rem">
+      <div class="field">
+        <label for="modification_notes">Modification notes</label>
+        <input id="modification_notes" name="modification_notes" value="{{ car.modification_notes or '' if car else '' }}">
+      </div>
+      <div class="field">
+        <label for="notes">Notes (pros/cons, price range)</label>
+        <textarea id="notes" name="notes" rows="2">{{ car.notes or '' if car else '' }}</textarea>
+      </div>
+    </div>
+    <div class="row" style="margin-top:.7rem">
+      <div class="field narrow"><label><input type="checkbox" name="recommended" {% if car and car.recommended %}checked{% endif %}> Recommended</label></div>
+      <div class="field narrow"><label><input type="checkbox" name="modified" {% if car and car.modified %}checked{% endif %}> Performance-modified engine</label></div>
+      <div class="field narrow"><label><input type="checkbox" name="listed_high_performance" {% if car and car.listed_high_performance %}checked{% endif %}> On high-performance list</label></div>
+    </div>
+    <div class="form-actions">
+      <button type="submit">{{ 'Save changes' if car else 'Add car' }}</button>
+      <a class="btn secondary" href="/">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

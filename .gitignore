@@ -1,0 +1,19 @@
+# Virtualenv / Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# App data / secrets
+.env
+*.db
+*.sqlite
+*.sqlite3
+.cache/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/

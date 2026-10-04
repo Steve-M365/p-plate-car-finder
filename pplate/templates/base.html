@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}{{ app_name }}{% endblock %}</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="site">
+    <div class="brand">{{ app_name }}</div>
+    <nav>
+      <a href="/" class="{% if active == 'dashboard' %}active{% endif %}">Dashboard</a>
+      <a href="/cars/new" class="{% if active == 'new' %}active{% endif %}">Add car</a>
+      <a href="/rules" class="{% if active == 'rules' %}active{% endif %}">P-plate rules</a>
+      <a href="/sources" class="{% if active == 'sources' %}active{% endif %}">Sources &amp; runs</a>
+      <a href="/docs" target="_blank" rel="noopener">API docs</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="disclaimer">
+      <strong>Guidance only, not legal advice.</strong>
+      Victorian P-plate vehicle rules change. This tool estimates compliance from the data you enter
+      and may be wrong or out of date. Always confirm the <em>exact make / model / variant</em> on the
+      official <a href="{{ ppv_database_url }}" target="_blank" rel="noopener">probationary vehicle database</a>
+      or with VicRoads before buying or driving. Listing data can be stale or incorrect &mdash; verify on the source site.
+    </div>
+
+    {% if msg %}<div class="msg">{{ msg }}</div>{% endif %}
+
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

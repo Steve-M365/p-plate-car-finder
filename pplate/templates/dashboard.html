@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - {{ app_name }}{% endblock %}
+{% block content %}
+
+<div class="cards">
+  <div class="card"><div class="num">{{ stats.total }}</div><div class="label">Total cars</div></div>
+  <div class="card"><div class="num" style="color:var(--green)">{{ stats.compliant }}</div><div class="label">P-plate compliant</div></div>
+  <div class="card"><div class="num" style="color:var(--red)">{{ stats.non_compliant }}</div><div class="label">Non-compliant</div></div>
+  <div class="card"><div class="num" style="color:var(--amber)">{{ stats.unknown }}</div><div class="label">Unknown / verify</div></div>
+  <div class="card"><div class="num" style="color:var(--blue)">{{ stats.recommended }}</div><div class="label">Recommended</div></div>
+</div>
+
+<div class="panel">
+  <h2>Tools</h2>
+  <div class="grid2">
+    <div>
+      <h3>Recommend first cars</h3>
+      <p class="small muted">Searches for current Victorian P-plate guidance and seeds commonly recommended, safe, cheap-to-run first cars.</p>
+      <form method="post" action="/tools/recommendations">
+        <button type="submit">Run recommendation search</button>
+      </form>
+      {% if last_search %}
+        <p class="small muted" style="margin-top:.5rem">Last search: "{{ last_search.query }}" via {{ last_search.provider or 'n/a' }} &rarr; {{ last_search.result_count }} result(s).</p>
+      {% endif %}
+    </div>
+    <div>
+      <h3>Fetch live listings</h3>
+      <p class="small muted">Imports listings and tags each one compliant / non-compliant / unknown. <code>mock</code> works offline; <code>csv</code> imports <code>data/listings.csv</code>; <code>carsales</code> is best-effort and respects robots.txt.</p>
+      <form method="post" action="/tools/fetch-listings">
+        <div class="row">
+          <div class="field narrow">
+            <label for="provider">Provider</label>
+            <select id="provider" name="provider">
+              <option value="auto">auto</option>
+              <option value="mock">mock</option>
+              <option value="csv">csv</option>
+              <option value="carsales">carsales</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="fetchq">Model search (optional)</label>
+            <input id="fetchq" name="query" placeholder="e.g. Toyota Corolla">
+          </div>
+          <div>
+            <button type="submit">Fetch listings</button>
+          </div>
+        </div>
+      </form>
+      {% if last_fetch %}
+        <p class="small muted" style="margin-top:.5rem">Last fetch: {{ last_fetch.provider }} &rarr; {{ last_fetch.inserted_count }} added, {{ last_fetch.updated_count }} updated. {{ last_fetch.error or '' }}</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Filter cars</h2>
+  <form method="get" action="/">
+    <div class="row">
+      <div class="field">
+        <label for="q">Search</label>
+        <input id="q" name="q" value="{{ filters.q or '' }}" placeholder="make / model / notes">
+      </div>
+      <div class="field narrow">
+        <label for="min_price">Min price (A$)</label>
+        <input id="min_price" name="min_price" type="number" value="{{ filters.min_price if filters.min_price is not none else '' }}">
+      </div>
+      <div class="field narrow">
+        <label for="max_price">Max price (A$)</label>
+        <input id="max_price" name="max_price" type="number" value="{{ filters.max_price if filters.max_price is not none else '' }}">
+      </div>
+      <div class="field narrow">
+        <label for="body_type">Body</label>
+        <select id="body_type" name="body_type">
+          <option value="">Any</option>
+          {% for b in body_types %}<option value="{{ b }}" {% if filters.body_type == b %}selected{% endif %}>{{ b }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field narrow">
+        <label for="fuel_type">Fuel</label>
+        <select id="fuel_type" name="fuel_type">
+          <option value="">Any</option>
+          {% for f in fuel_types %}<option value="{{ f }}" {% if filters.fuel_type == f %}selected{% endif %}>{{ f }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field narrow">
+        <label for="transmission">Transmission</label>
+        <select id="transmission" name="transmission">
+          <option value="">Any</option>
+          {% for t in transmissions %}<option value="{{ t }}" {% if filters.transmission == t %}selected{% endif %}>{{ t }}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field narrow">
+        <label for="min_safety">Min ANCAP</label>
+        <select id="min_safety" name="min_safety">
+          <option value="">Any</option>
+          {% for s in [5,4,3] %}<option value="{{ s }}" {% if filters.min_safety == s %}selected{% endif %}>{{ s }}★+</option>{% endfor %}
+        </select>
+      </div>
+      <div class="field narrow">
+        <label for="compliance">P-plate</label>
+        <select id="compliance" name="compliance">
+          <option value="">Any</option>
+          <option value="compliant" {% if filters.compliance and filters.compliance.value == 'compliant' %}selected{% endif %}>Compliant</option>
+          <option value="non_compliant" {% if filters.compliance and filters.compliance.value == 'non_compliant' %}selected{% endif %}>Non-compliant</option>
+          <option value="unknown" {% if filters.compliance and filters.compliance.value == 'unknown' %}selected{% endif %}>Unknown / verify</option>
+        </select>
+      </div>
+      <div class="field narrow">
+        <label for="recommended">Recommended</label>
+        <select id="recommended" name="recommended">
+          <option value="">Any</option>
+          <option value="true" {% if filters.recommended is sameas true %}selected{% endif %}>Yes</option>
+          <option value="false" {% if filters.recommended is sameas false %}selected{% endif %}>No</option>
+        </select>
+      </div>
+      <div class="field narrow">
+        <label for="sort">Sort</label>
+        <select id="sort" name="sort">
+          {% for val, lbl in [('price_asc','Price ↑'),('price_desc','Price ↓'),('year_desc','Year ↓'),('safety_desc','Safety ↓'),('power_asc','Power ↑'),('make_asc','Make A-Z')] %}
+          <option value="{{ val }}" {% if filters.sort == val %}selected{% endif %}>{{ lbl }}</option>{% endfor %}
+        </select>
+      </div>
+      <div>
+        <button type="submit">Apply filters</button>
+      </div>
+      <div>
+        <a class="btn secondary" href="/">Reset</a>
+      </div>
+    </div>
+  </form>
+</div>
+
+<div class="panel">
+  <h2>Cars ({{ cars|length }})</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Year</th><th>Car</th><th>Body</th><th>Fuel</th><th>Trans</th>
+          <th>Engine</th><th>Power</th><th>kW/t</th><th>Price</th><th>Odo</th>
+          <th>ANCAP</th><th>Location</th><th>P-plate</th><th>Rec.</th><th>Source</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for car in cars %}
+        <tr>
+          <td>{{ car.year or '—' }}</td>
+          <td>
+            <strong>{{ car.make }} {{ car.model }}</strong>
+            {% if car.variant %}<div class="small muted">{{ car.variant }}</div>{% endif %}
+            {% if car.listing_url %}<a class="small" href="{{ car.listing_url }}" target="_blank" rel="noopener">listing ↗</a>{% endif %}
+          </td>
+          <td>{{ car.body_type or '—' }}</td>
+          <td>{{ car.fuel_type or '—' }}</td>
+          <td>{{ car.transmission or '—' }}</td>
+          <td>{{ car.engine_size_cc or '—' }}{% if car.engine_size_cc %} cc{% endif %}</td>
+          <td>{% if car.power_kw %}{{ car.power_kw|round(0)|int }} kW{% else %}—{% endif %}</td>
+          <td>{% if car.power_to_weight %}{{ car.power_to_weight }}{% else %}—{% endif %}</td>
+          <td>{% if car.price_aud %}A$ {{ '{:,}'.format(car.price_aud) }}{% else %}—{% endif %}</td>
+          <td>{% if car.odometer_km %}{{ '{:,}'.format(car.odometer_km) }} km{% else %}—{% endif %}</td>
+          <td>{{ car.safety_rating_stars or '—' }}{% if car.safety_rating_stars %}★{% endif %}</td>
+          <td>{{ car.location or '—' }}</td>
+          <td>
+            <span class="badge {{ car.p_plate_compliant.value }}">
+              {% if car.p_plate_compliant.value == 'compliant' %}Compliant
+              {% elif car.p_plate_compliant.value == 'non_compliant' %}Not compliant
+              {% else %}Verify{% endif %}
+            </span>
+            <details><summary class="small">why</summary><div class="reason">{{ car.p_plate_reason }}</div></details>
+          </td>
+          <td>{% if car.recommended %}<span class="badge recommended">Yes</span>{% else %}—{% endif %}</td>
+          <td><span class="badge source">{{ car.source.value if car.source else '—' }}</span></td>
+          <td>
+            <a class="btn small secondary" href="/cars/{{ car.id }}/edit">Edit</a>
+            <form method="post" action="/cars/{{ car.id }}/delete" style="display:inline" onsubmit="return confirm('Delete this car?')">
+              <button class="btn small danger" type="submit">Del</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="16" class="muted">No cars match. Add one, run the recommendation search, or fetch listings.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Recent recommendation sources</h2>
+  <ul class="clean">
+    {% for s in sources %}
+    <li>
+      <a href="{{ s.url }}" target="_blank" rel="noopener">{{ s.title }}</a>
+      <span class="badge source">{{ s.category or 'web' }}</span>
+    </li>
+    {% else %}
+    <li class="muted">No sources yet. Run the recommendation search.</li>
+    {% endfor %}
+  </ul>
+</div>
+
+{% endblock %}

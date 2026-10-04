@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Victorian P-plate rules - {{ app_name }}{% endblock %}
+{% block content %}
+<div class="panel">
+  <h2>Victorian P-plate vehicle rules (implemented by this app)</h2>
+  <p>{{ rules_summary }}</p>
+  <h3>Thresholds in use</h3>
+  <ul class="clean">
+    <li>Power-to-mass limit: <strong>130 kW per tonne</strong> (tare mass).</li>
+    <li>Ratios of roughly <strong>120&ndash;130 kW/t</strong> (kerb-weight estimate) are reported as <em>verify</em> because the official figure uses lighter tare mass.</li>
+    <li>Applies to <strong>both P1 and P2</strong> drivers of <strong>any age</strong> in Victoria.</li>
+    <li>No blanket turbo / V8 / rotary ban in Victoria since 29 October 2019.</li>
+    <li>The old absolute power caps (~125/149 kW) are <strong>obsolete</strong>; this app ships with the absolute cap disabled.</li>
+  </ul>
+  <h3>Exemptions</h3>
+  <ul class="clean">
+    <li>Learner permit holders, full licence holders and overseas licence holders are not subject to the prohibited-vehicle rule.</li>
+    <li>A supervising fully-licensed driver may allow a prohibited vehicle.</li>
+    <li>Automatic work-related exemption (employer requirement, self-employed with ABN, or learning a heavy vehicle).</li>
+    <li>Undue-hardship exemption on application to VicRoads.</li>
+  </ul>
+  <h3>Authoritative sources</h3>
+  <ul class="clean">
+    {% for url in rules_sources %}
+    <li><a href="{{ url }}" target="_blank" rel="noopener">{{ url }}</a></li>
+    {% endfor %}
+  </ul>
+  <p class="small muted">
+    This page summarises rules current at build time (2025&ndash;26) and is provided as guidance only.
+    It is not legal advice and the driver is responsible for confirming compliance.
+    Check the <a href="{{ ppv_database_url }}" target="_blank" rel="noopener">official probationary vehicle database</a>
+    for the exact make / model / variant.
+  </p>
+</div>
+{% endblock %}
