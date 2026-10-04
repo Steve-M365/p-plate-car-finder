@@ -38,3 +38,40 @@ class RunSummaryOut(BaseModel):
     status: str = "ok"
     message: str | None = None
     compliance: dict[str, int] | None = None
+
+
+class SaveListingRequest(BaseModel):
+    """A single listing captured by the user (bookmarklet / extension / paste).
+
+    ``html`` should contain the page's JSON-LD ``<script>`` blocks if available;
+    ``text`` is the visible text. Any explicit field values override the parser.
+    """
+
+    url: str | None = None
+    title: str | None = None
+    html: str | None = None
+    text: str | None = None
+    source: str = "capture"
+
+    make: str | None = None
+    model: str | None = None
+    variant: str | None = None
+    year: int | None = None
+    engine_size_cc: int | None = None
+    power_kw: float | None = None
+    weight_kg: int | None = None
+    body_type: str | None = None
+    fuel_type: str | None = None
+    transmission: str | None = None
+    price_aud: int | None = None
+    odometer_km: int | None = None
+    location: str | None = None
+    safety_rating_stars: float | None = None
+    safety_rating_year: int | None = None
+
+
+class ImportUrlRequest(BaseModel):
+    """Fetch a single listing URL the user explicitly requested (robots-permitting)."""
+
+    url: str
+    overrides: dict | None = None

@@ -16,7 +16,7 @@ from pplate.models import FetchRun, RecommendationSource, SearchRun
 from pplate.models.enums import BODY_TYPES, FUEL_TYPES, TRANSMISSIONS, CarSource, ComplianceStatus
 from pplate.schemas import CarCreate, CarFilter, CarUpdate
 from pplate.services import car_service
-from pplate.services.listing_fetch import fetch_listings
+from pplate.services.listing_fetch import fetch_listings, save_captured_listing
 from pplate.services.p_plate_compliance import (
     PPV_DATABASE_URL,
     RULES_SOURCE_URLS,
@@ -232,6 +232,51 @@ def rules_page(request: Request):
         request,
         "rules.html",
         {"active": "rules"},
+    )
+
+
+def _bookmarklet(request: Request) -> str:
+    """Build the 'Save this listing' bookmarklet pointed at this host."""
+    submit = str(request.base_url).rstrip("/") + "/capture/submit"
+    return (
+        "javascript:(function(){"
+        f"var u={submit!r};"
+        "var d=document,f=d.createElement('form');"
+        "f.method='POST';f.action=u;f.target='_blank';f.style.display='none';"
+        "function a(n,v){var e=d.createElement('input');e.type='hidden';e.name=n;e.value=v||'';f.appendChild(e);}"
+        "a('url',location.href);a('title',d.title);"
+        "var ld='';"
+        "d.querySelectorAll('script[type=\"application/ld+json\"]').forEach(function(s){"
+        "ld+='<script type=\"application/ld+json\">'+s.textContent+'<\\/script>';});"
+        "a('ld',ld);a('text',((d.body&&d.body.innerText)||'').slice(0,20000));"
+        "d.body.appendChild(f);f.submit();})();"
+    )
+
+
+@router.get("/capture")
+def capture_page(request: Request):
+    return templates.TemplateResponse(
+        request,
+        "capture.html",
+        {"active": "capture", "result": None, "bookmarklet": _bookmarklet(request)},
+    )
+
+
+@router.post("/capture/submit")
+async def capture_submit(request: Request, db: Session = Depends(get_db)):
+    form = await request.form()
+    result = save_captured_listing(
+        db,
+        url=(form.get("url") or "").strip() or None,
+        title=(form.get("title") or "").strip() or None,
+        html=(form.get("ld") or None),
+        text=(form.get("text") or None),
+        source="capture",
+    )
+    return templates.TemplateResponse(
+        request,
+        "capture.html",
+        {"active": "capture", "result": result, "bookmarklet": _bookmarklet(request)},
     )
 
 

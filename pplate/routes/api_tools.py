@@ -9,9 +9,16 @@ from sqlalchemy.orm import Session
 from pplate.config import get_settings
 from pplate.db import get_db
 from pplate.models import FetchRun, RecommendationSource, SearchRun
-from pplate.schemas import FetchRequest, RecommendationRequest, RunSummaryOut
+from pplate.schemas import (
+    FetchRequest,
+    ImportUrlRequest,
+    RecommendationRequest,
+    RunSummaryOut,
+    SaveListingRequest,
+)
 from pplate.services import p_plate_compliance
-from pplate.services.listing_fetch import fetch_listings
+from pplate.services.external_http import ExternalClient
+from pplate.services.listing_fetch import fetch_listings, save_captured_listing
 from pplate.services.recommendation_search import run_recommendation_search
 
 router = APIRouter(prefix="/api", tags=["tools"])
@@ -69,6 +76,53 @@ def run_fetch(payload: FetchRequest, db: Session = Depends(get_db)):
         status=result.get("status", "ok"),
         message=result.get("message"),
         compliance=result.get("compliance"),
+    )
+
+
+@router.post("/tools/save-listing")
+def save_listing(payload: SaveListingRequest, db: Session = Depends(get_db)):
+    """Save a single listing captured by the user (bookmarklet / extension / paste).
+
+    The user supplies the page they can already see, so nothing is crawled and
+    no site protection is circumvented.
+    """
+    overrides = payload.model_dump(
+        exclude={"url", "title", "html", "text", "source"}, exclude_none=True
+    )
+    return save_captured_listing(
+        db,
+        url=payload.url,
+        title=payload.title,
+        html=payload.html,
+        text=payload.text,
+        overrides=overrides,
+        source=payload.source,
+    )
+
+
+@router.post("/tools/import-url")
+def import_url(payload: ImportUrlRequest, db: Session = Depends(get_db)):
+    """Fetch ONE listing URL the user explicitly chose, robots.txt permitting."""
+    settings = get_settings()
+    client = ExternalClient(db, rate_limit_seconds=settings.listing_rate_limit_seconds)
+    result = client.get(payload.url, provider="import-url")
+    if result.allowed_by_robots is False:
+        return {
+            "saved": False,
+            "url": payload.url,
+            "message": (
+                "robots.txt disallows automated fetching of that URL. "
+                "Use the 'Save this listing' bookmarklet instead."
+            ),
+        }
+    if not result.text:
+        return {
+            "saved": False,
+            "url": payload.url,
+            "message": f"Fetch failed: {result.error or result.status_code}.",
+        }
+    return save_captured_listing(
+        db, url=payload.url, html=result.text, overrides=payload.overrides or {}
     )
 
 

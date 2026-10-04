@@ -17,8 +17,10 @@ upsert + compliance pipeline then runs for all of them.
 from __future__ import annotations
 
 import csv
+import json
 import logging
 import random
+import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
@@ -30,6 +32,7 @@ from pplate.models import Car, FetchRun
 from pplate.models.enums import CarSource, ComplianceStatus
 from pplate.services.car_service import apply_compliance
 from pplate.services.external_http import ExternalClient
+from pplate.services.listing_parser import parse_listing
 
 logger = logging.getLogger("pplate.listings")
 
@@ -89,6 +92,119 @@ def _normalise_minimum(rec: dict[str, Any], source: str, external_id: str) -> di
 # ---------------------------------------------------------------------------
 # Providers
 # ---------------------------------------------------------------------------
+def _iter_feed_entries(text: str, fmt: str):
+    """Yield {title, link, summary, price, odometer} from an RSS/Atom/JSON feed."""
+    hint = (fmt or "auto").lower()
+    stripped = text.lstrip()
+    is_json = hint == "json" or (hint == "auto" and stripped[:1] in "[{")
+    if is_json:
+        data = json.loads(text)
+        items = data if isinstance(data, list) else (
+            data.get("items") or data.get("results") or data.get("listings") or []
+        )
+        for it in items:
+            if not isinstance(it, dict):
+                continue
+            yield {
+                "title": it.get("title") or it.get("name"),
+                "link": it.get("url") or it.get("link"),
+                "summary": it.get("description") or it.get("summary"),
+                "price": it.get("price"),
+                "odometer": it.get("odometer") or it.get("mileage"),
+            }
+        return
+    root = ET.fromstring(text)
+    for el in root.iter():
+        if el.tag.split("}")[-1] not in ("item", "entry"):
+            continue
+        rec: dict[str, Any] = {}
+        for child in el:
+            tag = child.tag.split("}")[-1]
+            if tag == "title":
+                rec["title"] = child.text
+            elif tag == "link":
+                rec["link"] = child.text or child.get("href")
+            elif tag in ("description", "summary"):
+                rec["summary"] = child.text
+        yield rec
+
+
+def _feed_provider(
+    client: ExternalClient, url: str, fmt: str, limit: int
+) -> tuple[list[dict], str | None]:
+    result = client.get(url, provider="feed")
+    if not result.text:
+        return [], f"Feed fetch failed: {result.error or 'no content'}."
+    try:
+        entries = list(_iter_feed_entries(result.text, fmt))
+    except Exception as exc:  # noqa: BLE001
+        return [], f"Could not parse feed ({fmt}): {exc}"
+
+    def _num(value: Any) -> int | None:
+        try:
+            return int(
+                float(str(value).replace(",", "").replace("$", "").replace("km", "").strip())
+            )
+        except (TypeError, ValueError):
+            return None
+
+    records: list[dict] = []
+    for entry in entries[:limit]:
+        combined = " ".join(filter(None, [entry.get("title"), entry.get("summary")]))
+        rec = parse_listing(
+            url=entry.get("link"), title=entry.get("title"), text=combined, source=CarSource.FEED.value
+        )
+        if _num(entry.get("price")):
+            rec["price_aud"] = _num(entry.get("price"))
+        if _num(entry.get("odometer")):
+            rec["odometer_km"] = _num(entry.get("odometer"))
+        if rec.get("make") and rec.get("model"):
+            records.append(rec)
+    return records, (None if records else "Feed contained no parseable car listings.")
+
+
+def _ebay_provider(
+    client: ExternalClient, settings, query: str | None, limit: int
+) -> tuple[list[dict], str | None]:
+    if not settings.ebay_oauth_token:
+        return [], (
+            "eBay provider needs EBAY_OAUTH_TOKEN (create a free eBay developer app "
+            "and use a Browse API OAuth token)."
+        )
+    data, result = client.get_json(
+        "https://api.ebay.com/buy/browse/v1/item_summary/search",
+        provider="ebay",
+        params={"q": query or "car", "limit": min(limit, 50), "filter": "itemLocationCountry:AU"},
+        headers={
+            "Authorization": f"Bearer {settings.ebay_oauth_token}",
+            "X-EBAY-C-MARKETPLACE-ID": settings.ebay_marketplace_id,
+        },
+        respect_robots=False,
+    )
+    if data is None:
+        return [], f"eBay API request failed: {result.error or result.status_code}."
+
+    records: list[dict] = []
+    for item in (data.get("itemSummaries") or [])[:limit]:
+        title = item.get("title")
+        rec = parse_listing(
+            url=item.get("itemWebUrl"), title=title, text=title or "", source=CarSource.EBAY.value
+        )
+        price = (item.get("price") or {}).get("value")
+        if price:
+            try:
+                rec["price_aud"] = int(float(price))
+            except (TypeError, ValueError):
+                pass
+        loc = item.get("itemLocation") or {}
+        loc_str = ", ".join(filter(None, [loc.get("city"), loc.get("state"), loc.get("country")]))
+        if loc_str:
+            rec["location"] = loc_str
+        if rec.get("make") and rec.get("model"):
+            records.append(rec)
+    return records, (None if records else "eBay returned no parseable car listings for that query.")
+
+
 def _mock_provider(query: str | None, limit: int) -> list[dict]:
     pool = _MOCK_POOL
     if query:
@@ -218,7 +334,7 @@ def _carsales_provider(client: ExternalClient, query: str | None, limit: int) ->
 # ---------------------------------------------------------------------------
 # Upsert + run
 # ---------------------------------------------------------------------------
-def _upsert_car(db: Session, rec: dict) -> str:
+def _upsert_car(db: Session, rec: dict) -> tuple[Car, str]:
     external_id = rec.get("external_id")
     existing = None
     if external_id:
@@ -229,11 +345,61 @@ def _upsert_car(db: Session, rec: dict) -> str:
                 continue
             setattr(existing, k, v)
         apply_compliance(existing)
-        return "updated"
+        return existing, "updated"
     car = Car(**rec)
     apply_compliance(car)
     db.add(car)
-    return "inserted"
+    return car, "inserted"
+
+
+def upsert_record(db: Session, rec: dict) -> tuple[Car, str]:
+    """Public upsert used by the capture flow, feeds and single-URL import."""
+    return _upsert_car(db, rec)
+
+
+def save_captured_listing(
+    db: Session,
+    *,
+    url: str | None = None,
+    title: str | None = None,
+    html: str | None = None,
+    text: str | None = None,
+    overrides: dict | None = None,
+    source: str = CarSource.CAPTURE.value,
+) -> dict:
+    """Parse a user-captured listing, upsert it and tag P-plate compliance.
+
+    This is the ToS-friendly "real data" path: the user saves a page they can
+    already see (carsales, Gumtree, Facebook Marketplace, a dealer site), so no
+    site crawl or access control is circumvented.
+    """
+    rec = parse_listing(
+        url=url, title=title, html=html, text=text, source=source, overrides=overrides
+    )
+    if not rec.get("make") or not rec.get("model"):
+        return {
+            "saved": False,
+            "message": (
+                "Could not detect a make/model. Re-save with the page fully loaded, "
+                "or add the car manually."
+            ),
+            "parsed": rec,
+        }
+    car, outcome = _upsert_car(db, rec)
+    db.commit()
+    db.refresh(car)
+    return {
+        "saved": True,
+        "outcome": outcome,
+        "car_id": car.id,
+        "make": car.make,
+        "model": car.model,
+        "year": car.year,
+        "price_aud": car.price_aud,
+        "p_plate_compliant": car.p_plate_compliant.value,
+        "p_plate_reason": car.p_plate_reason,
+        "parsed": rec,
+    }
 
 
 def fetch_listings(
@@ -253,7 +419,12 @@ def fetch_listings(
 
     message: str | None = None
     if provider == "auto":
-        provider = "csv" if Path(settings.listings_csv_path).exists() else "mock"
+        if settings.listing_feed_url:
+            provider = "feed"
+        elif Path(settings.listings_csv_path).exists():
+            provider = "csv"
+        else:
+            provider = "mock"
 
     if provider == "mock":
         records = _mock_provider(query, limit)
@@ -263,6 +434,21 @@ def fetch_listings(
             message = f"No rows found in {settings.listings_csv_path}; nothing imported."
     elif provider == "carsales":
         records, message = _carsales_provider(client, query, limit)
+    elif provider == "feed":
+        if not settings.listing_feed_url:
+            records, message = [], "Set LISTING_FEED_URL to use the feed provider."
+        else:
+            records, message = _feed_provider(
+                client, settings.listing_feed_url, settings.listing_feed_format, limit
+            )
+    elif provider == "ebay":
+        records, message = _ebay_provider(client, settings, query, limit)
+    elif provider in {"autograb", "redbook"}:
+        records = []
+        message = (
+            f"'{provider}' is a licensed/partner API. Set "
+            f"{provider.upper()}_API_KEY and wire the vendor endpoint to enable it."
+        )
     else:
         records = []
         message = f"Unknown provider {provider!r}."
@@ -273,7 +459,7 @@ def fetch_listings(
         if not rec.get("make") or not rec.get("model"):
             skipped += 1
             continue
-        outcome = _upsert_car(db, rec)
+        _car, outcome = _upsert_car(db, rec)
         if outcome == "inserted":
             inserted += 1
         else:

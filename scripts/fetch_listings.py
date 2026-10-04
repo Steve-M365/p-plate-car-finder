@@ -18,7 +18,7 @@ from pplate.services.listing_fetch import fetch_listings  # noqa: E402
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Fetch used-car listings into the local DB.")
-    parser.add_argument("--provider", default=None, help="mock | csv | carsales | auto")
+    parser.add_argument("--provider", default=None, help="mock | csv | feed | ebay | carsales | auto")
     parser.add_argument("--query", default=None, help="Optional model search, e.g. 'Toyota Corolla'")
     parser.add_argument("--limit", type=int, default=25)
     args = parser.parse_args()

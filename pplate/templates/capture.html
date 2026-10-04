@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}Capture a listing - {{ app_name }}{% endblock %}
+{% block content %}
+
+<div class="panel">
+  <h2>Save a listing from any site</h2>
+  <p>
+    This is the reliable, terms-friendly way to get <strong>real</strong> listings from
+    carsales, Gumtree, Facebook Marketplace, Autotrader or any dealer site. You capture a
+    page <em>you are already viewing</em> &mdash; the app never crawls a site or bypasses any
+    access control.
+  </p>
+  <ol class="small">
+    <li>Drag the button below to your browser's bookmarks bar (once).</li>
+    <li>Open a car listing, then click the bookmarklet.</li>
+    <li>It opens a new tab that parses the page, saves the car, and tags P-plate compliance.</li>
+  </ol>
+  <p>
+    <a class="btn" href="{{ bookmarklet }}" title="Drag me to the bookmarks bar" draggable="true"
+       onclick="alert('Drag this button to your bookmarks bar, then click it on a listing page.'); return false;">
+      Save to P-Plate Finder
+    </a>
+  </p>
+  <p class="small muted">
+    Tip: if your browser strips the <code>javascript:</code> prefix when you paste into the bookmarks bar,
+    re-type it manually. Prefer a browser extension? POST the same fields to
+    <code>/api/tools/save-listing</code>.
+  </p>
+</div>
+
+<div class="panel">
+  <h2>Or paste a listing</h2>
+  <p class="small muted">Copy the listing page's title and text (or a link) into the form. Useful on mobile.</p>
+  <form method="post" action="/capture/submit">
+    <div class="row">
+      <div class="field">
+        <label for="url">Listing URL (optional)</label>
+        <input id="url" name="url" placeholder="https://...">
+      </div>
+      <div class="field">
+        <label for="title">Title (optional)</label>
+        <input id="title" name="title" placeholder="e.g. 2016 Toyota Corolla Ascent">
+      </div>
+    </div>
+    <div class="row" style="margin-top:.6rem">
+      <div class="field">
+        <label for="text">Paste listing text</label>
+        <textarea id="text" name="text" rows="6" placeholder="2016 Toyota Corolla Ascent, 1.8L petrol automatic, 92,000 km, $13,990, Werribee VIC"></textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button type="submit">Save listing</button>
+    </div>
+  </form>
+</div>
+
+{% if result %}
+<div class="panel">
+  <h2>Result</h2>
+  {% if result.saved %}
+    <p>
+      Saved <strong>{{ result.make }} {{ result.model }}</strong>{% if result.year %} ({{ result.year }}){% endif %}
+      &mdash; <span class="badge {{ result.p_plate_compliant }}">
+        {% if result.p_plate_compliant == 'compliant' %}Compliant
+        {% elif result.p_plate_compliant == 'non_compliant' %}Not compliant
+        {% else %}Verify{% endif %}
+      </span>
+    </p>
+    <p class="small muted">{{ result.p_plate_reason }}</p>
+    <p>
+      <a class="btn secondary" href="/cars/{{ result.car_id }}/edit">Review / edit this car</a>
+      <a class="btn secondary" href="/">Back to dashboard</a>
+    </p>
+  {% else %}
+    <p class="msg" style="margin:0">{{ result.message }}</p>
+    <p class="small muted">Parsed so far: {{ result.parsed }}</p>
+    <p><a class="btn secondary" href="/cars/new">Add it manually instead</a></p>
+  {% endif %}
+</div>
+{% endif %}
+
+{% endblock %}

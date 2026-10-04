@@ -22,6 +22,9 @@ class CarSource(str, enum.Enum):
     MARKETPLACE = "marketplace"
     CSV = "csv"
     MOCK = "mock"
+    FEED = "feed"
+    EBAY = "ebay"
+    CAPTURE = "capture"
 
 
 # Canonical body types / fuel types / transmissions used for filtering.

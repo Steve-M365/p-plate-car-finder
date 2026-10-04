@@ -100,8 +100,12 @@ top of the maths, and the maths is always the primary test.
 * **Run recommendation search** — web search for current rules + first-car guides
   (Tavily API if a key is provided, otherwise a bundled authoritative knowledge
   base) and seeds ~15 curated first cars.
-* **Fetch live listings** — `carsales` (best-effort, robots-respecting), `csv`
-  import, or `mock` for offline demos. Every listing is normalised and tagged.
+* **Fetch live listings** — `carsales` (best-effort, robots-respecting), `feed`
+  (any RSS/Atom/JSON feed), `ebay` (official Browse API), `csv` import, or `mock`
+  for offline demos. Every listing is normalised and tagged.
+* **Capture real listings** from carsales, Gumtree, Facebook Marketplace or a
+  dealer site via a bookmarklet/extension (`/capture`) — user-initiated, so no
+  crawling or access-control bypass.
 * **Transparency** — all external HTTP requests are rate-limited, cached, and
   logged (`external_request_log`); search and fetch runs are recorded.
 * **Disclaimers** throughout the UI.
@@ -208,26 +212,70 @@ python scripts/run_recommendations.py
   ranges, specs, ANCAP rating and pros/cons — all comfortably under 130 kW/t.
 * Every query and result is recorded in `search_runs` / `recommendation_sources`.
 
-## 7. Fetching listings
+## 7. Fetching real listing data
+
+Every listing source is normalised to the same fields, de-duplicated by
+`external_id`, upserted, and run through the compliance engine.
 
 ```bash
 python scripts/fetch_listings.py --provider mock --limit 20
 python scripts/fetch_listings.py --provider csv
-python scripts/fetch_listings.py --provider carsales --query "Toyota Corolla"
+python scripts/fetch_listings.py --provider feed          # uses LISTING_FEED_URL
+python scripts/fetch_listings.py --provider ebay --query "Toyota Corolla"
 ```
 
-* **`mock`** — deterministic synthetic listings; works offline; includes a mix of
-  compliant / borderline / non-compliant examples.
-* **`csv`** — imports `data/listings.csv` (edit `LISTINGS_CSV_PATH`). Columns:
-  `external_id,make,model,variant,year,engine_size_cc,power_kw,weight_kg,body_type,fuel_type,transmission,price_aud,odometer_km,location,safety_rating_stars,safety_rating_year,listing_url`.
-  This is the **plug-in point** for any future API or manual export.
-* **`carsales`** — checks `robots.txt` first; if crawling is disallowed it logs
-  the decision and returns nothing rather than circumventing the block. If
-  allowed, it parses embedded JSON-LD. Facebook Marketplace is intentionally
-  **not** implemented (no stable public endpoint); import via CSV instead.
+### What each source actually permits (checked October 2026)
 
-All providers are normalised to the same fields, de-duplicated by `external_id`,
-upserted, and run through the compliance engine.
+| Source | Search-page crawl | Legitimate way to get data |
+|--------|-------------------|----------------------------|
+| carsales.com.au | Blocked (`/cars?*`, `/cars/results?*`, `/api/`; "dataset broker" policy) | Partner/enterprise data services; or **capture** below |
+| gumtree.com.au | Blocked (`*/search/*`, `?q=`, `?keywords=`, `*.json`, `ecg-api`) | No public read API; **capture** or a feed |
+| carsguide / autotrader | Filter URLs blocked (both carsales-owned) | Partner; or **capture** |
+| Facebook Marketplace | No public API (Graph API excludes Marketplace) | **capture** only |
+| eBay (AU) | n/a | Official **Browse API** (`ebay` provider) |
+| Dealer / aggregator | n/a | **feed** import (RSS/Atom/JSON) |
+
+Rule of thumb: **detail pages you choose to view are fine to capture; search /
+query pages and internal APIs are off-limits**, and we never bypass a block.
+
+### Capture a listing (works for carsales, Gumtree, Facebook Marketplace, dealers)
+
+User-initiated capture is the most reliable route to real data — you save a page
+you are already viewing, so nothing is crawled and no protection is bypassed.
+
+* Open `/capture`, drag the **"Save to P-Plate Finder"** bookmarklet to your
+  bookmarks bar, then click it on a listing. It posts the page's JSON-LD + visible
+  text to `/capture/submit`, which parses, saves and tags the car.
+* Or paste a listing's title/text into the same page.
+* Or, from an extension/script, `POST /api/tools/save-listing` with
+  `{url, title, html, text, ...overrides}` (any explicit field wins over the parser).
+
+### Generic feed import (`feed`)
+
+Set `LISTING_FEED_URL` to any RSS / Atom / JSON feed you are entitled to use
+(dealer inventory feed, aggregator export, a site that publishes one) and run the
+`feed` provider. Titles/descriptions are parsed for year, make, model, price,
+odometer, engine, transmission and fuel; explicit feed `price`/`odometer` win.
+
+### Official / licensed APIs
+
+* **eBay Browse API** (`ebay`): free with an eBay developer app — set
+  `EBAY_OAUTH_TOKEN` and `EBAY_MARKETPLACE_ID=EBAY_AU`. Real eBay Motors listings.
+* **Licensed market-data vendors** (`autograb`, `redbook` providers): set
+  `AUTOGRAB_API_KEY` / `REDBOOK_API_KEY` after a commercial agreement; the hooks
+  are in place and return a clear message until configured.
+* **Dealer/DMS feeds**: many AU dealers publish inventory as CSV/XML/JSON — point
+  the `feed` provider or CSV import at it.
+
+### Single-URL import
+
+`POST /api/tools/import-url {url}` fetches one URL you explicitly chose, but only
+if `robots.txt` allows it; otherwise it tells you to use the bookmarklet. This
+keeps bulk crawling out of scope while allowing a quick one-off.
+
+> **Not implemented (deliberately):** scraping carsales/Gumtree search pages and
+> Facebook Marketplace. Those breach site terms/robots and, for Marketplace, have
+> no public endpoint. Use capture or a feed instead.
 
 ## 8. Compliance: changing the thresholds
 
@@ -259,7 +307,9 @@ changes. Re-run `POST /api/cars/{id}/recheck` (or just edit a car) to recompute.
 | GET | `/api/cars/stats` | Compliance/recommended counts |
 | GET | `/api/rules` | Rules summary, thresholds, source URLs |
 | POST | `/api/tools/recommendations` | Run recommendation search |
-| POST | `/api/tools/fetch-listings` | Fetch listings |
+| POST | `/api/tools/fetch-listings` | Fetch listings (mock/csv/feed/carsales/ebay) |
+| POST | `/api/tools/save-listing` | Save a captured listing (bookmarklet/extension/paste) |
+| POST | `/api/tools/import-url` | Fetch ONE listing URL (robots.txt permitting) |
 | GET | `/api/recommendation-sources` | Stored sources |
 | GET | `/api/search-runs`, `/api/fetch-runs` | Run history |
 

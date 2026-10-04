@@ -44,6 +44,18 @@ class Settings(BaseSettings):
     listing_cache_ttl_seconds: int = 3600
     cache_dir: str = "./.cache"
 
+    # Generic feed import (RSS / Atom / JSON) from any site or dealer feed.
+    listing_feed_url: str | None = None
+    listing_feed_format: str = "auto"  # auto | rss | atom | json
+
+    # eBay official Browse API (free with an eBay developer app). AU marketplace.
+    ebay_oauth_token: str | None = None
+    ebay_marketplace_id: str = "EBAY_AU"
+
+    # Licensed/partner APIs: set a key to enable the corresponding provider.
+    autograb_api_key: str | None = None
+    redbook_api_key: str | None = None
+
     # --- Locations ---------------------------------------------------------
     base_dir: str = "."
 
