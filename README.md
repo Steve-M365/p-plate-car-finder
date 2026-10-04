@@ -17,7 +17,7 @@ and pull in listings (live where permitted, otherwise CSV or mock data).
 
 ## 1. The Victorian P-plate rules this app implements
 
-Verified against Transport Victoria / VicRoads (2025–26). In Victoria a
+Verified against Transport Victoria / VicRoads (re-checked October 2026). In Victoria a
 probationary driver (P1 **or** P2, of **any age**) must **not** drive a vehicle
 that is a *probationary prohibited vehicle* (PPV). A vehicle is prohibited if
 **any** of the following is true:
@@ -43,6 +43,9 @@ that is a *probationary prohibited vehicle* (PPV). A vehicle is prohibited if
   the limit is not.
 * The **variant matters**, not the badge: a base model can be legal while the
   performance variant is banned (e.g. Tesla Model 3 RWD vs Performance).
+* **EVs are not exempt**: the 130 kW/t test applies to electric drivelines too.
+  Many single-motor EVs are under the limit (e.g. BYD Dolphin ~46 kW/t), while
+  dual-motor/performance EVs are not (e.g. Tesla Model 3 Performance ~185 kW/t).
 
 **Exemptions** (not applied by this tool): learner, full and overseas licence
 holders are not subject to the rule; a supervising fully-licensed driver,
@@ -56,6 +59,8 @@ automatic work-related exemptions, and approved undue-hardship exemptions exist.
   <https://vicroadssafevehicles.carsalesnetwork.com.au/#/search>
 * VicRoads — [Driving on your Ps](https://www.vicroads.vic.gov.au/ls-and-ps/driving-on-your-ps).
 * Road Safety (Drivers) Regulations 2019 (Vic), reg 57 — statutory basis.
+* Transport Victoria — [Exemptions to drive a prohibited vehicle](https://transport.vic.gov.au/road-and-active-transport/registration-and-licensing/licences/probationary-licence/exemptions-to-drive-a-prohibited-vehicle).
+* VACC MotorTech — [Can I drive an EV on my P-plates?](https://motortech.com.au/can-i-drive-an-ev-on-my-p-plates-yes-and-no/) (EV guidance).
 * carsales editorial — [P-plate prohibited vehicles update](https://www.carsales.com.au/editorial/details/p-plate-prohibited-vehicles-update-100374/).
 
 ### How the compliance engine decides

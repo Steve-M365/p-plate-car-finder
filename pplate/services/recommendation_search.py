@@ -39,6 +39,7 @@ RULE_QUERIES = [
     "VicRoads probationary vehicle database approved banned under review",
     "Victorian P1 P2 high performance vehicle restrictions 2026",
     "can a P plater drive a turbo car Victoria power to weight",
+    "can P platers drive an electric car in Victoria 130 kW per tonne",
 ]
 
 CAR_QUERIES = [
@@ -82,6 +83,26 @@ STATIC_SOURCES: list[dict[str, str]] = [
         "url": "https://www4.austlii.edu.au/au/legis/vic/num_reg/rsr2019n100o2019403/s57.html",
         "title": "Road Safety (Drivers) Regulations 2019 (Vic), reg 57",
         "summary": "Statutory basis for power-to-mass and high-powered modification declarations.",
+        "category": "rules",
+    },
+    {
+        "url": "https://transport.vic.gov.au/road-and-active-transport/registration-and-licensing/licences/probationary-licence/exemptions-to-drive-a-prohibited-vehicle",
+        "title": "Transport Victoria - Exemptions to drive a prohibited vehicle",
+        "summary": (
+            "How to apply for the supervising-driver, work-related (automatic) and "
+            "undue-hardship exemptions that allow a probationary driver to use a "
+            "prohibited vehicle."
+        ),
+        "category": "rules",
+    },
+    {
+        "url": "https://motortech.com.au/can-i-drive-an-ev-on-my-p-plates-yes-and-no/",
+        "title": "VACC MotorTech - Can I drive an EV on my P-plates?",
+        "summary": (
+            "The 130 kW/tonne power-to-mass rule applies to electric drivelines too: "
+            "most single-motor EVs are under the limit, while many dual-motor/"
+            "performance EVs are banned. Variant matters."
+        ),
         "category": "rules",
     },
     {

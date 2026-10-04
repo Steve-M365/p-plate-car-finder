@@ -1,6 +1,6 @@
 """Victorian P-plate (probationary) vehicle compliance logic.
 
-THE RULES THIS IMPLEMENTS (verified from Transport Victoria / VicRoads, 2025-26)
+THE RULES THIS IMPLEMENTS (verified from Transport Victoria / VicRoads, re-checked October 2026)
 ===============================================================================
 Victoria restricts which cars a probationary (P1 or P2) driver may drive.
 A car is a "probationary prohibited vehicle" (PPV) if ANY of the following:
@@ -53,10 +53,13 @@ RULES_SOURCE_URLS: list[str] = [
     "https://www.vicroads.vic.gov.au/ls-and-ps/driving-on-your-ps",
     # The database used for Approved / Banned / Under review decisions.
     PPV_DATABASE_URL,
+    # Official exemptions (supervising driver / work / undue hardship).
+    "https://transport.vic.gov.au/road-and-active-transport/registration-and-licensing/licences/probationary-licence/exemptions-to-drive-a-prohibited-vehicle",
     # Road Safety (Drivers) Regulations 2019 (Vic), reg 57 (high-powered mods).
     "https://www4.austlii.edu.au/au/legis/vic/num_reg/rsr2019n100o2019403/s57.html",
-    # Reputable industry summary (carsales).
+    # Reputable industry summaries (carsales, VACC on EVs).
     "https://www.carsales.com.au/editorial/details/p-plate-prohibited-vehicles-update-100374/",
+    "https://motortech.com.au/can-i-drive-an-ev-on-my-p-plates-yes-and-no/",
 ]
 
 RULES_SUMMARY = (
@@ -65,8 +68,10 @@ RULES_SUMMARY = (
     "(2) has a power-to-mass ratio greater than 130 kW per tonne of tare mass, or "
     "(3) has a performance-increasing engine modification (unless done by the "
     "manufacturer at build). The 130 kW/tonne limit applies to both P1 and P2 "
-    "regardless of age. Learner, full and overseas licence holders are exempt. "
-    "Exemptions exist for supervising drivers, work use and undue hardship."
+    "regardless of age, and applies equally to electric vehicles - many "
+    "single-motor EVs are under the limit while dual-motor/performance variants "
+    "are not. Learner, full and overseas licence holders are exempt. Exemptions "
+    "exist for supervising drivers, work use and undue hardship."
 )
 
 # ---------------------------------------------------------------------------
