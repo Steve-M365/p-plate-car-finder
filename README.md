@@ -8,6 +8,12 @@ probationary ("P-plate") vehicle rules**, and lets you filter, tag and compare
 them. It can also search for current rule guidance / first-car recommendations
 and pull in listings (live where permitted, otherwise CSV or mock data).
 
+**Live read-only demo (GitHub Pages):** <https://steve-m365.github.io/p-plate-car-finder/>
+— a static snapshot regenerated on every push by `.github/workflows/pages.yml`.
+GitHub Pages is static-only, so the full app (editing, recommendation search,
+listing capture) runs locally; the Pages site is a browse-only view of the same
+data. See [section 7](#7-fetching-real-listing-data) for the data sources.
+
 > **Guidance only — not legal advice.** Victorian rules change and this app may
 > be wrong or out of date. Always confirm the *exact make/model/variant* on the
 > official **probationary vehicle database** or with VicRoads before buying or
